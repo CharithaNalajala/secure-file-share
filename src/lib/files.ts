@@ -35,6 +35,10 @@ export function sanitizeFileName(name: string): string {
   return cleaned.slice(-100) || 'file'
 }
 
+export function buildStoragePath(userId: string, fileName: string, now: number = Date.now()): string {
+  return `${userId}/${now}-${sanitizeFileName(fileName)}`
+}
+
 export function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`

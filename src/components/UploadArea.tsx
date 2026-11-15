@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { DragEvent } from 'react'
 import { BUCKET, supabase } from '../lib/supabase'
-import { sanitizeFileName, validateFile } from '../lib/files'
+import { buildStoragePath, validateFile } from '../lib/files'
 
 interface Props {
   userId: string
@@ -21,7 +21,7 @@ export default function UploadArea({ userId, onUploaded, onError }: Props) {
       onError(invalid)
       return false
     }
-    const path = `${userId}/${Date.now()}-${sanitizeFileName(file.name)}`
+    const path = buildStoragePath(userId, file.name)
     const { error: upErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, upsert: false })
