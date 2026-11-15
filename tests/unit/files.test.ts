@@ -150,7 +150,7 @@ describe('formatSize', () => {
 
   it('formats MB values', () => {
     expect(formatSize(1024 * 1024)).toBe('1.00 MB')
-    expect(formatSize(MAX_SIZE)).toBe('10.00 MB')
+    expect(formatSize(MAX_SIZE)).toBe('11.00 MB') // DEMO: intentionally wrong, should fail CI
     expect(formatSize(2.5 * 1024 * 1024)).toBe('2.50 MB')
   })
 })
