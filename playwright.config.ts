@@ -5,6 +5,8 @@ import { config as loadEnv } from 'dotenv'
 loadEnv({ path: '.env.local', quiet: true })
 
 const PORT = 5173
+// Set E2E_BASE_URL (e.g. http://localhost:8080) to test an already-running build, such as the Docker image.
+const externalBaseURL = process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -17,15 +19,17 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: externalBaseURL ?? `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: externalBaseURL
+    ? undefined
+    : {
+        command: `npm run dev -- --port ${PORT} --strictPort`,
+        url: `http://localhost:${PORT}`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 })
