@@ -79,10 +79,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::VITE_SUPABASE_URL secret is missing"; exit 1; }
+          test -n "$VITE_SUPABASE_ANON_KEY" || { echo "::error::VITE_SUPABASE_ANON_KEY secret is missing"; exit 1; }
           docker build \
-            --build-arg VITE_SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}" \
-            --build-arg VITE_SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+            --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
             -t secure-file-share:ci .
       - name: Run container
         run: docker run -d --name web -p 8080:80 secure-file-share:ci
@@ -99,6 +104,18 @@ jobs:
           echo "GET /login -> $deep"
           test "$deep" = "200"
           curl -sI http://localhost:8080/ | grep -i -E 'x-content-type-options|x-frame-options|content-security-policy'
+      - name: Verify the real Supabase config was baked in
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        run: |
+          # Values are never echoed; grep -q only reports pass/fail.
+          curl -sI http://localhost:8080/ | grep -qiF "connect-src 'self' $VITE_SUPABASE_URL" \
+            && echo "CSP connect-src names the configured Supabase URL" \
+            || { echo "::error::CSP does not contain the configured Supabase URL"; exit 1; }
+          asset=$(curl -s http://localhost:8080/ | grep -o '/assets/[^"]*\.js' | head -1)
+          curl -s "http://localhost:8080$asset" | grep -qF "$VITE_SUPABASE_URL" \
+            && echo "JS bundle contains the configured Supabase URL" \
+            || { echo "::error::JS bundle does not contain the configured Supabase URL"; exit 1; }
       - name: Container logs (on failure)
         if: failure()
         run: docker logs web

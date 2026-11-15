@@ -13,9 +13,16 @@ import {
   uploadPdf,
 } from './helpers'
 
-test.skip(!hasE2EEnv, SKIP_MESSAGE)
+// Locally, missing credentials skip the suite. In CI that would hide a broken setup behind a green check, so fail instead.
+test.skip(!hasE2EEnv && !process.env.CI, SKIP_MESSAGE)
 
 test.describe('Secure File Share', () => {
+  test.beforeAll(() => {
+    if (process.env.CI && !hasE2EEnv) {
+      throw new Error(`E2E credentials are missing in CI. ${SKIP_MESSAGE}`)
+    }
+  })
+
   // Every test cleans up after itself so the test account stays empty.
   test.afterEach(async () => {
     await cleanupE2EFiles()
